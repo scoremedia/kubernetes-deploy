@@ -806,12 +806,32 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("cronjobs"),
       bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{CronJob/my-cronjob\s+Exists},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded}
+    ])
   end
 
   def test_deploy_successful_with_multiple_template_dirs_multiple_partials
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("test-partials2"),
       bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded}
+    ])
   end
 
   def test_deploy_aborts_immediately_if_metadata_name_missing
