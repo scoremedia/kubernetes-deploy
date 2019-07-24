@@ -35,7 +35,7 @@ module FixtureDeployHelper
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = deploy_dir(target_dir, args)
+      success = deploy_dirs(target_dir, args)
     end
     success
   end
@@ -52,10 +52,10 @@ module FixtureDeployHelper
         subset.each do |file|
           FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
         end
-        success = deploy_dir(target_dir, wait: wait, bindings: bindings)
+        success = deploy_dirs(target_dir, wait: wait, bindings: bindings)
       end
     else
-      success = deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
+      success = deploy_dirs(fixture_path(set), wait: wait, bindings: bindings)
     end
     success
   end
@@ -82,10 +82,10 @@ module FixtureDeployHelper
     )
   end
 
-  # Deploys all fixtures in the given directory via KubernetesDeploy::DeployTask
+  # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(*dirs, **args)
+  def deploy_dirs(*dirs, **args)
     if ENV["PROFILE"]
       deploy_result = nil
       result = RubyProf.profile { deploy_result = deploy_dirs_without_profiling(dirs, args) }

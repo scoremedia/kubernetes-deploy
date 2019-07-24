@@ -112,8 +112,8 @@ module KubernetesDeploy
       @logger = logger
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
-      @renderers = @template_dirs.map do |template_dir|
-        KubernetesDeploy::Renderer.new(
+      @renderers = Hash.new do |hash, template_dir|
+        hash[template_dir] = KubernetesDeploy::Renderer.new(
           current_sha: @current_sha,
           template_dir: template_dir,
           logger: @logger,
@@ -279,8 +279,8 @@ module KubernetesDeploy
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering templates:")
 
-      @template_dirs.each do |template_dir|
-        TemplateDiscovery.new(template_dir).templates.each do |filename|
+      TemplateDiscovery.new(@template_dirs).templates.each do |template_dir, filenames|
+        filenames.each do |filename|
           split_templates(template_dir, filename) do |r_def|
             crd = crds[r_def["kind"]]&.first
             r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
@@ -290,6 +290,7 @@ module KubernetesDeploy
           end
         end
       end
+
       secrets_from_ejson.each do |secret|
         resources << secret
         @logger.info("  - #{secret.id} (from ejson)")
@@ -304,9 +305,7 @@ module KubernetesDeploy
 
     def split_templates(template_dir, filename)
       file_content = File.read(File.join(template_dir, filename))
-      rendered_content = @renderers.find do |renderer|
-        renderer.template_dir == template_dir
-      end.render_template(filename, file_content)
+      rendered_content = @renderers[template_dir].render_template(filename, file_content)
       YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
         next if doc.blank?
         unless doc.is_a?(Hash)
