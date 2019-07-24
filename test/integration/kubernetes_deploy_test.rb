@@ -814,7 +814,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{CronJob/my-cronjob\s+Exists},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Pod/pod1\s+Succeeded},
-      %r{Pod/pod2\s+Succeeded}
+      %r{Pod/pod2\s+Succeeded},
     ])
   end
 
@@ -830,7 +830,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Pod/pod1\s+Succeeded},
-      %r{Pod/pod2\s+Succeeded}
+      %r{Pod/pod2\s+Succeeded},
     ])
   end
 
@@ -846,7 +846,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{Secret/a-secret\s+Available},
       %r{Secret/catphotoscom\s+Available},
       %r{Secret/monitoring-token\s+Available},
-      %r{Secret/unused-secret\s+Available}
+      %r{Secret/unused-secret\s+Available},
     ])
   end
 
