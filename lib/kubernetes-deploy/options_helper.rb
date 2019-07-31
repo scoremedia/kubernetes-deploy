@@ -7,14 +7,11 @@ module KubernetesDeploy
     STDIN_TEMP_FILE = "from_stdin.yml.erb"
     class << self
       def with_validated_template_dirs(template_dirs)
-        if template_dirs.select { |dir| dir == "-" }.length > 2
-          raise OptionsError, "Cannot specify stdin as a template directory more than once"
-        end
-
         dirs = []
         if template_dirs.empty?
           dirs << default_template_dir
         else
+          template_dirs.uniq!
           template_dirs.each do |template_dir|
             next if template_dir == '-'
             dirs << template_dir
