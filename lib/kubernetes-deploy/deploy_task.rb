@@ -41,7 +41,7 @@ require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
-require 'kubernetes-deploy/template_discovery'
+require 'kubernetes-deploy/resource_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -110,17 +110,10 @@ module KubernetesDeploy
       @context = context
       @current_sha = current_sha
       @template_dirs = (template_dirs.map { |template_dir| File.expand_path(template_dir) } << template_dir).reject(&:nil?)
+      @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
-      @renderers = Hash.new do |hash, template_dir|
-        hash[template_dir] = KubernetesDeploy::Renderer.new(
-          current_sha: @current_sha,
-          template_dir: template_dir,
-          logger: @logger,
-          bindings: bindings,
-        )
-      end
       @selector = selector
     end
 
@@ -278,19 +271,9 @@ module KubernetesDeploy
     def discover_resources
       resources = []
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
-      @logger.info("Discovering templates:")
-
-      TemplateDiscovery.new(@template_dirs).templates.each do |template_dir, filenames|
-        filenames.each do |filename|
-          split_templates(template_dir, filename) do |r_def|
-            crd = crds[r_def["kind"]]&.first
-            r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-              statsd_tags: @namespace_tags, crd: crd)
-            resources << r
-            @logger.info("  - #{r.id}")
-          end
-        end
-      end
+      @logger.info("Discovering resources:")
+      resources += ResourceDiscovery.new(template_dirs: @template_dirs, current_sha: @current_sha,
+          logger: @logger, bindings: @bindings, namespace_tags: @namespace_tags, crds: crds).resources
 
       secrets_from_ejson.each do |secret|
         resources << secret
@@ -301,20 +284,6 @@ module KubernetesDeploy
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
       resources.sort
-    end
-    measure_method(:discover_resources)
-
-    def split_templates(template_dir, filename)
-      file_content = File.read(File.join(template_dir, filename))
-      rendered_content = @renderers[template_dir].render_template(filename, file_content)
-      YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
-        next if doc.blank?
-        unless doc.is_a?(Hash)
-          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
-            filename: filename, content: doc)
-        end
-        yield doc
-      end
     rescue InvalidTemplateError => e
       e.filename ||= filename
       record_invalid_template(err: e.message, filename: e.filename, content: e.content)
@@ -323,6 +292,7 @@ module KubernetesDeploy
       record_invalid_template(err: e.message, filename: filename, content: rendered_content)
       raise FatalDeploymentError, "Failed to render and parse template"
     end
+    measure_method(:discover_resources)
 
     def record_invalid_template(err:, filename:, content: nil)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
