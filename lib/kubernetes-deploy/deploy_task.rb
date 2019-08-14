@@ -285,11 +285,10 @@ module KubernetesDeploy
       end
       resources.sort
     rescue InvalidTemplateError => e
-      e.filename ||= filename
       record_invalid_template(err: e.message, filename: e.filename, content: e.content)
       raise FatalDeploymentError, "Failed to render and parse template"
     rescue Psych::SyntaxError => e
-      record_invalid_template(err: e.message, filename: filename, content: rendered_content)
+      record_invalid_template(err: e.message, filename: e.filename, content: rendered_content)
       raise FatalDeploymentError, "Failed to render and parse template"
     end
     measure_method(:discover_resources)
