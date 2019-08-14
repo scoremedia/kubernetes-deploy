@@ -102,14 +102,13 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    # Deprecation warning: template_dir: String field is deprecated and will be removed in the near-future. Use template_dirs: Array instead
     def initialize(namespace:, context:, current_sha:, logger:, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_dirs: [], template_dir: nil)
       @namespace = namespace
       @namespace_tags = []
       @context = context
       @current_sha = current_sha
-      @template_dirs = (template_dirs.map { |template_dir| File.expand_path(template_dir) } << template_dir).reject(&:nil?)
+      @template_dirs = (template_dirs.map { |dir| File.expand_path(dir) } << template_dir).reject(&:nil?)
       @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance
