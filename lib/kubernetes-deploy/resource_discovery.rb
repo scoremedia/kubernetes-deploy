@@ -2,8 +2,10 @@
 
 module KubernetesDeploy
   class ResourceDiscovery
-    def initialize(template_dirs:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
+    def initialize(template_dirs:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
       @template_dirs = template_dirs
+      @namespace = namespace
+      @context = context
       @logger = logger
       @namespace_tags = namespace_tags
       @renderers = Hash.new do |hash, template_dir|

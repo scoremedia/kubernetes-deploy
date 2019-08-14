@@ -271,8 +271,9 @@ module KubernetesDeploy
       resources = []
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering resources:")
-      resources += ResourceDiscovery.new(template_dirs: @template_dirs, current_sha: @current_sha,
-          logger: @logger, bindings: @bindings, namespace_tags: @namespace_tags, crds: crds).resources
+      resources += ResourceDiscovery.new(template_dirs: @template_dirs, namespace: @namespace,
+        context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
+        namespace_tags: @namespace_tags, crds: crds).resources
 
       secrets_from_ejson.each do |secret|
         resources << secret
