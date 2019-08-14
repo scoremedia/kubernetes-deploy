@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module KubernetesDeploy
-  class ResourceDiscovery
+  class LocalResourceDiscovery
     def initialize(template_dirs:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
       @template_dirs = template_dirs
       @namespace = namespace

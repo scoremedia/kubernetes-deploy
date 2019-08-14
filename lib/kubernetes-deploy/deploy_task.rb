@@ -41,7 +41,7 @@ require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
-require 'kubernetes-deploy/resource_discovery'
+require 'kubernetes-deploy/local_resource_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -271,7 +271,7 @@ module KubernetesDeploy
       resources = []
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering resources:")
-      resources += ResourceDiscovery.new(template_dirs: @template_dirs, namespace: @namespace,
+      resources += LocalResourceDiscovery.new(template_dirs: @template_dirs, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds).resources
 
