@@ -56,11 +56,11 @@ module KubernetesDeploy
         end
         yield doc
       end
-    rescue InvalidTemplateError => e
-      e.filename ||= filename
-      raise InvalidTemplateError.new(e.message, filename: filename, content: e.content)
-    rescue Psych::SyntaxError => e
-      raise InvalidTemplateError.new(e.message, filename: filename, content: rendered_content)
+    rescue InvalidTemplateError => err
+      err.filename ||= filename
+      raise err
+    rescue Psych::SyntaxError => err
+      raise InvalidTemplateError.new(err.message, filename: filename, content: rendered_content)
     end
   end
 end
