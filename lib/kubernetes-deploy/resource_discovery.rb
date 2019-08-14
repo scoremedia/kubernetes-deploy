@@ -56,6 +56,8 @@ module KubernetesDeploy
         end
         yield doc
       end
+    rescue Psych::SyntaxError => e
+      raise InvalidTemplateError.new(e.message, filename: filename, content: rendered_content)
     end
   end
 end
