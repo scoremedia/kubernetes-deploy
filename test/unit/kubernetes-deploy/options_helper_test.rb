@@ -5,15 +5,15 @@ require 'tempfile'
 class OptionsHelperTest < KubernetesDeploy::TestCase
   include EnvTestHelper
   def test_with_template_dir
-    KubernetesDeploy::OptionsHelper.with_validated_template_dirs([fixture_path('hello-cloud')]) do |template_dirs|
-      assert_equal(template_dirs, [fixture_path('hello-cloud')])
+    KubernetesDeploy::OptionsHelper.with_validated_template_paths([fixture_path('hello-cloud')]) do |template_paths|
+      assert_equal(template_paths, [fixture_path('hello-cloud')])
     end
   end
 
   def test_template_dir_with_default_env_var
     with_env("ENVIRONMENT", "test") do
-      KubernetesDeploy::OptionsHelper.with_validated_template_dirs([]) do |template_dirs|
-        assert_equal(template_dirs, [File.join("config", "deploy", "test")])
+      KubernetesDeploy::OptionsHelper.with_validated_template_paths([]) do |template_paths|
+        assert_equal(template_paths, [File.join("config", "deploy", "test")])
       end
     end
   end
@@ -21,7 +21,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
   def test_missing_template_dir_raises
     with_env("ENVIRONMENT", nil) do
       assert_raises(KubernetesDeploy::OptionsHelper::OptionsError) do
-        KubernetesDeploy::OptionsHelper.with_validated_template_dirs([]) do
+        KubernetesDeploy::OptionsHelper.with_validated_template_paths([]) do
         end
       end
     end
@@ -29,28 +29,28 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
 
   def test_with_explicit_template_dir_with_env_var_set
     with_env("ENVIRONMENT", "test") do
-      KubernetesDeploy::OptionsHelper.with_validated_template_dirs([fixture_path('hello-cloud')]) do |template_dirs|
-        assert_equal(template_dirs, [fixture_path('hello-cloud')])
+      KubernetesDeploy::OptionsHelper.with_validated_template_paths([fixture_path('hello-cloud')]) do |template_paths|
+        assert_equal(template_paths, [fixture_path('hello-cloud')])
       end
     end
   end
 
-  def test_with_multiple_template_dirs
-    KubernetesDeploy::OptionsHelper.with_validated_template_dirs(
+  def test_with_multiple_template_paths
+    KubernetesDeploy::OptionsHelper.with_validated_template_paths(
       [fixture_path('hello-cloud'), fixture_path('cronjobs')]
-    ) do |template_dirs|
-      assert_equal(template_dirs, [fixture_path('hello-cloud'), fixture_path('cronjobs')])
+    ) do |template_paths|
+      assert_equal(template_paths, [fixture_path('hello-cloud'), fixture_path('cronjobs')])
     end
   end
 
-  def test_with_multiple_template_dirs_with_stdin
+  def test_with_multiple_template_paths_with_stdin
     wrapped_stdin do |input|
       fixture_yamls = []
       stdin_yamls = []
       fixture_yamls = fixtures_for_stdin(fixture_path: fixture_path("hello-cloud"), file: input)
 
-      KubernetesDeploy::OptionsHelper.with_validated_template_dirs(['-', 'cronjobs']) do |template_dirs|
-        stdin_dir = (template_dirs - ['cronjobs']).first
+      KubernetesDeploy::OptionsHelper.with_validated_template_paths(['-', 'cronjobs']) do |template_paths|
+        stdin_dir = (template_paths - ['cronjobs']).first
         split_templates = File.read(
           File.join(stdin_dir, KubernetesDeploy::OptionsHelper::STDIN_TEMP_FILE)
         ).split(/^---$/).map(&:strip).reject(&:empty?)
@@ -61,7 +61,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
         fixture_yamls.each do |fixture|
           assert(stdin_yamls.include?(fixture))
         end
-        assert(template_dirs.include?('cronjobs'))
+        assert(template_paths.include?('cronjobs'))
       end
     end
   end
@@ -72,9 +72,9 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
       stdin_yamls = []
       fixture_yamls = fixtures_for_stdin(fixture_path: fixture_path("hello-cloud"), file: input)
 
-      KubernetesDeploy::OptionsHelper.with_validated_template_dirs(['-']) do |template_dirs|
+      KubernetesDeploy::OptionsHelper.with_validated_template_paths(['-']) do |template_paths|
         split_templates = File.read(
-          File.join(template_dirs.first, KubernetesDeploy::OptionsHelper::STDIN_TEMP_FILE)
+          File.join(template_paths.first, KubernetesDeploy::OptionsHelper::STDIN_TEMP_FILE)
         ).split(/^---$/).map(&:strip).reject(&:empty?)
         refute(split_templates.empty?)
         split_templates.each do |template|
@@ -88,17 +88,17 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_with_repeated_template_dirs
+  def test_with_repeated_template_paths
     wrapped_stdin do
-      KubernetesDeploy::OptionsHelper.with_validated_template_dirs(['-', '-']) do |template_dirs|
-        assert_equal(template_dirs.length, 1)
+      KubernetesDeploy::OptionsHelper.with_validated_template_paths(['-', '-']) do |template_paths|
+        assert_equal(template_paths.length, 1)
       end
     end
 
-    KubernetesDeploy::OptionsHelper.with_validated_template_dirs(
+    KubernetesDeploy::OptionsHelper.with_validated_template_paths(
       [fixture_path('hello-cloud'), fixture_path('hello-cloud')]
-    ) do |template_dirs|
-      assert_equal(template_dirs.length, 1)
+    ) do |template_paths|
+      assert_equal(template_paths.length, 1)
     end
   end
 

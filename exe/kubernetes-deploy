@@ -6,7 +6,7 @@ require 'optparse'
 
 skip_wait = false
 template_dir = nil # deprecated
-template_dirs = []
+template_paths = []
 allow_protected_ns = false
 prune = true
 bindings = {}
@@ -26,8 +26,8 @@ ARGV.options do |opts|
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |dir|
     template_dir = dir
   end
-  opts.on("-f [DIRS]", Array, "comma separated list of template directories") do |dirs|
-    template_dirs = dirs
+  opts.on("-f [DIRS]", Array, "comma separated list of template directories") do |paths|
+    template_paths = paths
   end
 
   opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
@@ -53,23 +53,23 @@ ARGV.options do |opts|
 end
 
 # Deprecation path: this can be removed when --template-dir is fully replaced by -f
-if template_dir && !template_dirs.empty?
+if template_dir && !template_paths.empty?
   puts "Error: --template-dir and -f flags cannot be combined"
   exit(1)
 end
-template_dirs = [template_dir] if template_dirs.empty?
+template_paths = [template_dir] if template_paths.empty?
 
 namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
 begin
-  KubernetesDeploy::OptionsHelper.with_validated_template_dirs(template_dirs) do |dirs|
+  KubernetesDeploy::OptionsHelper.with_validated_template_paths(template_paths) do |paths|
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,
       current_sha: ENV["REVISION"],
-      template_dirs: dirs,
+      template_paths: paths,
       bindings: bindings,
       logger: logger,
       max_watch_seconds: max_watch_seconds,

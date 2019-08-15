@@ -802,7 +802,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_equal(1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}")
   end
 
-  def test_deploy_successful_with_multiple_template_dirs
+  def test_deploy_successful_with_multiple_template_paths
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("cronjobs"),
       bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
@@ -818,7 +818,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
-  def test_deploy_successful_with_multiple_template_dirs_multiple_partials
+  def test_deploy_successful_with_multiple_template_paths_multiple_partials
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("test-partials2"),
       bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
@@ -834,7 +834,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
-  def test_ejson_secrets_are_created_from_multiple_template_dirs
+  def test_ejson_secrets_are_created_from_multiple_template_paths
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
 
@@ -855,7 +855,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
     assert_logs_match_all([
       "Successfully deployed 1 resource",
-      /ServiceAccount\/build-robot(\s+)Created/
+      %r{ServiceAccount/build-robot(\s+)Created},
     ], in_order: true)
   end
 
@@ -865,20 +865,20 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
     assert_logs_match_all([
       "Successfully deployed 2 resources",
-      /CronJob\/my-cronjob(\s+)Exists/,
-      /ServiceAccount\/build-robot(\s+)Created/
+      %r{CronJob/my-cronjob(\s+)Exists},
+      %r{ServiceAccount/build-robot(\s+)Created},
     ], in_order: true)
   end
 
   def test_deploy_successful_multiple_filenames_different_directories
     hello_cloud_file = File.expand_path("../..//fixtures/hello-cloud/service-account.yml", __FILE__)
-    cronjob_file  = File.expand_path("../..//fixtures/cronjobs/cronjob.yaml.erb", __FILE__)
+    cronjob_file = File.expand_path("../..//fixtures/cronjobs/cronjob.yaml.erb", __FILE__)
     result = deploy_dirs(hello_cloud_file, cronjob_file)
     assert_deploy_success(result)
     assert_logs_match_all([
       "Successfully deployed 2 resources",
-      /CronJob\/my-cronjob(\s+)Exists/,
-      /ServiceAccount\/build-robot(\s+)Created/
+      %r{CronJob/my-cronjob(\s+)Exists},
+      %r{ServiceAccount/build-robot(\s+)Created},
     ], in_order: true)
   end
 

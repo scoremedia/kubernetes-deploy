@@ -3,24 +3,24 @@ module KubernetesDeploy
   class TemplateDiscovery
     class << self
       def templates(template_args)
-        template_dirs = {}
+        template_paths = {}
         dir_args = template_args.select { |arg| File.directory?(arg) }
         file_args = template_args.select { |arg| File.file?(arg) }
 
         # Directory arg
-        dir_args.each_with_object(template_dirs) do |template_dir, hash|
+        dir_args.each_with_object(template_paths) do |template_dir, hash|
           hash[template_dir] = Dir.foreach(template_dir).select do |filename|
             filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
           end
         end
         # Filename arg
-        file_args.each_with_object(template_dirs) do |filename, hash|
+        file_args.each_with_object(template_paths) do |filename, hash|
           dir_name = File.dirname(filename)
           hash[dir_name] ||= []
           hash[dir_name] << File.basename(filename) unless hash[dir_name].include?(filename)
         end
 
-        template_dirs
+        template_paths
       end
 
       def validate_templates(template_args)

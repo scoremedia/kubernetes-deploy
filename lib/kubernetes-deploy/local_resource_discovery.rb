@@ -2,8 +2,8 @@
 
 module KubernetesDeploy
   class LocalResourceDiscovery
-    def initialize(template_dirs:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
-      @template_dirs = template_dirs
+    def initialize(template_args:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
+      @template_paths = template_args
       @namespace = namespace
       @context = context
       @logger = logger
@@ -21,7 +21,7 @@ module KubernetesDeploy
 
     def resources
       resources = []
-      TemplateDiscovery.templates(@template_dirs).each do |template_dir, filenames|
+      TemplateDiscovery.templates(@template_paths).each do |template_dir, filenames|
         filenames.each do |filename|
           split_templates(template_dir, filename) do |r_def|
             crd = @crds[r_def["kind"]]&.first

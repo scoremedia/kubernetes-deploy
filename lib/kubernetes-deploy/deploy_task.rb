@@ -104,12 +104,12 @@ module KubernetesDeploy
     end
 
     def initialize(namespace:, context:, current_sha:, logger:, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil, selector: nil, template_dirs: [], template_dir: nil)
+      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil)
       @namespace = namespace
       @namespace_tags = []
       @context = context
       @current_sha = current_sha
-      @template_dirs = (template_dirs.map { |dir| File.expand_path(dir) } << template_dir).compact
+      @template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
       @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance
@@ -201,7 +201,7 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisioners ||= @template_dirs.map do |template_dir|
+      @ejson_provisioners ||= @template_paths.map do |template_dir|
         EjsonSecretProvisioner.new(
           namespace: @namespace,
           context: @context,
@@ -271,7 +271,7 @@ module KubernetesDeploy
     def discover_resources
       @logger.info("Discovering resources:")
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
-      resource_discoverer = LocalResourceDiscovery.new(template_dirs: @template_dirs, namespace: @namespace,
+      resource_discoverer = LocalResourceDiscovery.new(template_args: @template_paths, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds)
       resources = resource_discoverer.resources
@@ -307,7 +307,7 @@ module KubernetesDeploy
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
       errors += kubeclient_builder.validate_config_files
-      errors += TemplateDiscovery.validate_templates(@template_dirs)
+      errors += TemplateDiscovery.validate_templates(@template_paths)
 
       if @namespace.blank?
         errors << "Namespace must be specified"

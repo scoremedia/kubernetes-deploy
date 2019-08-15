@@ -68,7 +68,7 @@ module FixtureDeployHelper
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
-      template_dirs: dirs,
+      template_paths: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
       bindings: bindings,

@@ -6,26 +6,26 @@ module KubernetesDeploy
 
     STDIN_TEMP_FILE = "from_stdin.yml.erb"
     class << self
-      def with_validated_template_dirs(template_dirs)
-        dirs = []
-        if template_dirs.empty?
-          dirs << default_template_dir
+      def with_validated_template_paths(template_paths)
+        validated_paths = []
+        if template_paths.empty?
+          validated_paths << default_template_dir
         else
-          template_dirs.uniq!
-          template_dirs.each do |template_dir|
-            next if template_dir == '-'
-            dirs << template_dir
+          template_paths.uniq!
+          template_paths.each do |template_path|
+            next if template_path == '-'
+            validated_paths << template_path
           end
         end
 
-        if template_dirs.include?("-")
+        if template_paths.include?("-")
           Dir.mktmpdir("kubernetes-deploy") do |dir|
             template_dir_from_stdin(temp_dir: dir)
-            dirs << dir
-            yield dirs
+            validated_paths << dir
+            yield validated_paths
           end
         else
-          yield dirs
+          yield validated_paths
         end
       end
 
