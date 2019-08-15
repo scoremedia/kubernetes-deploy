@@ -36,7 +36,9 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
   end
 
   def test_with_multiple_template_dirs
-    KubernetesDeploy::OptionsHelper.with_validated_template_dirs([fixture_path('hello-cloud'), fixture_path('cronjobs')]) do |template_dirs|
+    KubernetesDeploy::OptionsHelper.with_validated_template_dirs(
+      [fixture_path('hello-cloud'), fixture_path('cronjobs')]
+    ) do |template_dirs|
       assert_equal(template_dirs, [fixture_path('hello-cloud'), fixture_path('cronjobs')])
     end
   end
@@ -87,13 +89,15 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
   end
 
   def test_with_repeated_template_dirs
-    wrapped_stdin do |input|
+    wrapped_stdin do
       KubernetesDeploy::OptionsHelper.with_validated_template_dirs(['-', '-']) do |template_dirs|
         assert_equal(template_dirs.length, 1)
       end
     end
 
-    KubernetesDeploy::OptionsHelper.with_validated_template_dirs([fixture_path('hello-cloud'), fixture_path('hello-cloud')]) do |template_dirs|
+    KubernetesDeploy::OptionsHelper.with_validated_template_dirs(
+      [fixture_path('hello-cloud'), fixture_path('hello-cloud')]
+    ) do |template_dirs|
       assert_equal(template_dirs.length, 1)
     end
   end
@@ -114,7 +118,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     fixture_yamls
   end
 
-  def wrapped_stdin(&block)
+  def wrapped_stdin
     old_stdin = $stdin
     input = Tempfile.open("kubernetes_deploy_test")
     $stdin = input
