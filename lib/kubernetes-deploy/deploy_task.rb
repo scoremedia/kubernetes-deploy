@@ -42,6 +42,7 @@ require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/local_resource_discovery'
+require 'kubernetes-deploy/template_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -306,14 +307,7 @@ module KubernetesDeploy
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
       errors += kubeclient_builder.validate_config_files
-
-      @template_dirs.each do |template_dir|
-        if !File.directory?(template_dir)
-          errors << "Template directory `#{template_dir}` doesn't exist"
-        elsif Dir.entries(template_dir).none? { |file| file =~ /(\.ya?ml(\.erb)?)$|(secrets\.ejson)$/ }
-          errors << "`#{template_dir}` doesn't contain valid templates (secrets.ejson or postfix .yml, .yml.erb)"
-        end
-      end
+      errors += TemplateDiscovery.validate_templates(@template_dirs)
 
       if @namespace.blank?
         errors << "Namespace must be specified"

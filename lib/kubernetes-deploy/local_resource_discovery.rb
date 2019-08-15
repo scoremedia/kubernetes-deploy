@@ -21,7 +21,7 @@ module KubernetesDeploy
 
     def resources
       resources = []
-      templates.each do |template_dir, filenames|
+      TemplateDiscovery.templates(@template_dirs).each do |template_dir, filenames|
         filenames.each do |filename|
           split_templates(template_dir, filename) do |r_def|
             crd = @crds[r_def["kind"]]&.first
@@ -36,14 +36,6 @@ module KubernetesDeploy
     end
 
     private
-
-    def templates
-      @template_dirs.each_with_object({}) do |template_dir, hash|
-        hash[template_dir] = Dir.foreach(template_dir).select do |filename|
-          filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
-        end
-      end
-    end
 
     def split_templates(template_dir, filename)
       file_content = File.read(File.join(template_dir, filename))
