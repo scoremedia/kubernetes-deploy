@@ -834,22 +834,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
-    def test_deploy_successful_partials_with_filename_args
-      partial_file_1 = File.join(fixture_path("test-partials"), "deployment.yaml.erb")
-      partial_file_2 = File.join(fixture_path("test-partials2"), "deployment.yml.erb")
-      result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' })
-      assert_deploy_success(result)
+  def test_deploy_successful_partials_with_filename_args
+    partial_file_1 = File.join(fixture_path("test-partials"), "deployment.yaml.erb")
+    partial_file_2 = File.join(fixture_path("test-partials2"), "deployment.yml.erb")
+    result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' })
+    assert_deploy_success(result)
 
-      assert_logs_match_all([
-        %r{ConfigMap/config-for-pod1\s+Available},
-        %r{ConfigMap/config-for-pod2\s+Available},
-        %r{ConfigMap/independent-configmap\s+Available},
-        %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-        %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
-        %r{Pod/pod1\s+Succeeded},
-        %r{Pod/pod2\s+Succeeded},
-      ])
-    end
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded},
+    ])
+  end
 
   def test_ejson_secrets_are_created_from_multiple_template_paths
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
