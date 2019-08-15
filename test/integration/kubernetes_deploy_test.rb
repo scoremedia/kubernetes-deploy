@@ -850,6 +850,38 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_deploy_successful_with_filename_arg
+    result = deploy_dirs(File.expand_path("../..//fixtures/hello-cloud/service-account.yml", __FILE__))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 1 resource",
+      /ServiceAccount\/build-robot(\s+)Created/
+    ], in_order: true)
+  end
+
+  def test_deploy_successful_with_both_filename_and_template_dir
+    filepath = File.expand_path("../..//fixtures/hello-cloud/service-account.yml", __FILE__)
+    result = deploy_dirs(filepath, fixture_path("cronjobs"))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 2 resources",
+      /CronJob\/my-cronjob(\s+)Exists/,
+      /ServiceAccount\/build-robot(\s+)Created/
+    ], in_order: true)
+  end
+
+  def test_deploy_successful_multiple_filenames_different_directories
+    hello_cloud_file = File.expand_path("../..//fixtures/hello-cloud/service-account.yml", __FILE__)
+    cronjob_file  = File.expand_path("../..//fixtures/cronjobs/cronjob.yaml.erb", __FILE__)
+    result = deploy_dirs(hello_cloud_file, cronjob_file)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 2 resources",
+      /CronJob\/my-cronjob(\s+)Exists/,
+      /ServiceAccount\/build-robot(\s+)Created/
+    ], in_order: true)
+  end
+
   def test_deploy_aborts_immediately_if_metadata_name_missing
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       definition = fixtures["configmap-data.yml"]["ConfigMap"].first

@@ -19,6 +19,6 @@ class DeployTaskTest < KubernetesDeploy::TestCase
     assert_logs_match("Configuration invalid")
     assert_logs_match("Namespace must be specified")
     assert_logs_match("Context must be specified")
-    assert_logs_match(/Template directory (\S+) doesn't exist/)
+    assert_logs_match(/Template does not exist. Couldn't find file or directory (\S+)/)
   end
 end
