@@ -108,7 +108,7 @@ module KubernetesDeploy
       @namespace_tags = []
       @context = context
       @current_sha = current_sha
-      @template_dirs = (template_dirs.map { |dir| File.expand_path(dir) } << template_dir).reject(&:nil?)
+      @template_dirs = (template_dirs.map { |dir| File.expand_path(dir) } << template_dir).compact
       @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance

@@ -15,7 +15,6 @@ ARGV.options do |opts|
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |d|
     template_dir = d
   end
-
   opts.parse!
   bindings = parser.parse
 end
