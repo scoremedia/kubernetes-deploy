@@ -2,15 +2,16 @@
 module KubernetesDeploy
   class TemplateDiscovery
     class << self
+      VALID_EXTENSIONS = %w(.yml.erb .yml .yaml .yaml.erb)
       def templates(template_paths)
         templates = {}
         dir_paths = template_paths.select { |path| File.directory?(path) }
-        file_paths = template_paths.select { |path| File.file?(path) }
+        file_paths = template_paths.select { |path| File.file?(path) && path.end_with?(*VALID_EXTENSIONS) }
 
         # Directory paths
         dir_paths.each_with_object(templates) do |template_dir, hash|
           hash[template_dir] = Dir.foreach(template_dir).select do |filename|
-            filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
+            filename.end_with?(*VALID_EXTENSIONS)
           end
         end
         # Filename paths
