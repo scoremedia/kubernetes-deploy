@@ -201,7 +201,7 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisioners ||= @template_paths.map do |template_dir|
+      @ejson_provisioners ||= TemplateDiscovery.templates(@template_paths).keys.map do |template_dir|
         EjsonSecretProvisioner.new(
           namespace: @namespace,
           context: @context,
@@ -271,7 +271,7 @@ module KubernetesDeploy
     def discover_resources
       @logger.info("Discovering resources:")
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
-      resource_discoverer = LocalResourceDiscovery.new(template_args: @template_paths, namespace: @namespace,
+      resource_discoverer = LocalResourceDiscovery.new(template_paths: @template_paths, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds)
       resources = resource_discoverer.resources

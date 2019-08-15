@@ -2,8 +2,8 @@
 
 module KubernetesDeploy
   class LocalResourceDiscovery
-    def initialize(template_args:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
-      @template_paths = template_args
+    def initialize(template_paths:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
+      @template_paths = template_paths
       @namespace = namespace
       @context = context
       @logger = logger
