@@ -26,7 +26,7 @@ ARGV.options do |opts|
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |dir|
     template_dir = dir
   end
-  opts.on("-f [DIRS]", Array, "comma separated list of template directories") do |paths|
+  opts.on("-f [PATHS]", Array, "comma separated list of template directories and/or filenames") do |paths|
     template_paths = paths
   end
 
