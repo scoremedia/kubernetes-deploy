@@ -22,7 +22,7 @@ module KubernetesDeploy
     def resources
       resources = []
       @templates.each do |template_dir, filenames|
-        filenames.reject {|f| f == KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE}.each do |filename|
+        filenames.reject { |f| f == KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE }.each do |filename|
           split_templates(template_dir, filename) do |r_def|
             crd = @crds[r_def["kind"]]&.first
             r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
