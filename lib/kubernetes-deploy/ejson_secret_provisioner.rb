@@ -17,12 +17,11 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, templates:, logger:, statsd_tags:, selector: nil)
+    def initialize(namespace:, context:, ejson_keys_secret:, template_dir:, logger:, statsd_tags:, selector: nil)
       @namespace = namespace
       @context = context
-      @ejson_files = templates.flat_map do |template_dir, filenames|
-        "#{template_dir}/#{EJSON_SECRETS_FILE}" if filenames.include?(EJSON_SECRETS_FILE)
-      end.reject(&:nil?)
+      @ejson_keys_secret = ejson_keys_secret
+      @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
       @statsd_tags = statsd_tags
       @selector = selector
@@ -39,44 +38,31 @@ module KubernetesDeploy
       @resources ||= build_secrets
     end
 
-    def ejson_keys_secret
-      @ejson_keys_secret ||= begin
-        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json",
-          raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
-        unless st.success?
-          raise EjsonSecretError, "Error retrieving Secret/#{EJSON_KEYS_SECRET}: #{err}"
-        end
-        JSON.parse(out)
-      end
-    end
-
     private
 
     def build_secrets
-      secret_resources = []
-      @ejson_files.each do |ejson_file|
-        next unless File.exist?(ejson_file)
-        @ejson_file = ejson_file
-        with_decrypted_ejson do |decrypted|
-          secrets = decrypted[EJSON_SECRET_KEY]
-          unless secrets.present?
-            @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
-              "No secrets will be created.")
-            next
-          end
+      unless @ejson_keys_secret
+        raise EjsonSecretError, "Secret #{EJSON_KEYS_SECRET} not provided, cannot decrypt secrets"
+      end
+      return [] unless File.exist?(@ejson_file)
+      with_decrypted_ejson do |decrypted|
+        secrets = decrypted[EJSON_SECRET_KEY]
+        unless secrets.present?
+          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
+            "No secrets will be created.")
+          return []
+        end
 
-          secrets.each do |secret_name, secret_spec|
-            validate_secret_spec(secret_name, secret_spec)
-            resource = generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
-            resource.validate_definition(@kubectl)
-            if resource.validation_failed?
-              raise EjsonSecretError, "Resulting resource Secret/#{secret_name} failed validation"
-            end
-            secret_resources << resource
+        secrets.map do |secret_name, secret_spec|
+          validate_secret_spec(secret_name, secret_spec)
+          resource = generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
+          resource.validate_definition(@kubectl)
+          if resource.validation_failed?
+            raise EjsonSecretError, "Resulting resource Secret/#{secret_name} failed validation"
           end
+          resource
         end
       end
-      secret_resources
     end
 
     def encrypted_ejson
@@ -160,7 +146,7 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      encoded_private_key = ejson_keys_secret["data"][public_key]
+      encoded_private_key = @ejson_keys_secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"
       end

@@ -110,7 +110,6 @@ module KubernetesDeploy
       @context = context
       @current_sha = current_sha
       @template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
-      @templates = TemplateDiscovery.new(@template_paths).templates
       @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance
@@ -130,7 +129,6 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
-      # local var templates (from inst var above, pass in to v_conf and d_resourcs)
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       resources = discover_resources
       validate_resources(resources)
@@ -202,15 +200,18 @@ module KubernetesDeploy
       )
     end
 
-    def ejson_provisioner(templates)
-      @ejson_provisioner ||= EjsonSecretProvisioner.new(
-        namespace: @namespace,
-        context: @context,
-        templates: @templates,
-        logger: @logger,
-        statsd_tags: @namespace_tags,
-        selector: @selector,
-      )
+    def ejson_provisioners
+      @ejson_provisoners ||= TemplateDiscovery.ejson_secret_templates(@template_paths).map do |secret_template|
+        EjsonSecretProvisioner.new(
+          namespace: @namespace,
+          context: @context,
+          ejson_keys_secret: ejson_keys_secret,
+          template_dir: File.dirname(secret_template),
+          logger: @logger,
+          statsd_tags: @namespace_tags,
+          selector: @selector,
+        )
+      end
     end
 
     def deploy_has_priority_resources?(resources)
@@ -265,14 +266,14 @@ module KubernetesDeploy
     measure_method(:check_initial_status, "initial_status.duration")
 
     def secrets_from_ejson
-      ejson_provisioner.resources
+      ejson_provisioners.flat_map(&:resources)
     end
 
-    def discover_resources(template_paths)
+    def discover_resources
       @logger.info("Discovering resources:")
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
-      templates = TemplateDiscovery.templates(template_paths)
-      resource_discoverer = LocalResourceDiscovery.new(templates: @templates, namespace: @namespace,
+      resource_templates = TemplateDiscovery.resource_templates(@template_paths)
+      resource_discoverer = LocalResourceDiscovery.new(templates: resource_templates, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds)
       resources = resource_discoverer.resources
@@ -539,8 +540,7 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      secret = ejson_provisioner.ejson_keys_secret
-      return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
+      return unless ejson_keys_secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \
         "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
@@ -557,6 +557,17 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+    end
+
+    def ejson_keys_secret
+      @ejson_keys_secret ||= begin
+        out, err, st = @kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
+          raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
+        unless st.success?
+          raise EjsonSecretError, "Error retrieving Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
+        end
+        JSON.parse(out)
+      end
     end
 
     def statsd_tags
