@@ -130,6 +130,7 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
+      # local var templates (from inst var above, pass in to v_conf and d_resourcs)
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       resources = discover_resources
       validate_resources(resources)
@@ -201,8 +202,8 @@ module KubernetesDeploy
       )
     end
 
-    def ejson_provisioners
-      @ejson_provisioners ||= EjsonSecretProvisioner.new(
+    def ejson_provisioner(templates)
+      @ejson_provisioner ||= EjsonSecretProvisioner.new(
         namespace: @namespace,
         context: @context,
         templates: @templates,
@@ -264,12 +265,13 @@ module KubernetesDeploy
     measure_method(:check_initial_status, "initial_status.duration")
 
     def secrets_from_ejson
-      ejson_provisioners.resources
+      ejson_provisioner.resources
     end
 
-    def discover_resources
+    def discover_resources(template_paths)
       @logger.info("Discovering resources:")
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
+      templates = TemplateDiscovery.templates(template_paths)
       resource_discoverer = LocalResourceDiscovery.new(templates: @templates, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds)
@@ -537,7 +539,7 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      secret = ejson_provisioners.ejson_keys_secret
+      secret = ejson_provisioner.ejson_keys_secret
       return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \
