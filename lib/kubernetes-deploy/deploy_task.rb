@@ -110,6 +110,7 @@ module KubernetesDeploy
       @context = context
       @current_sha = current_sha
       @template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
+      @templates = TemplateDiscovery.new(@template_paths).templates
       @bindings = bindings
       @logger = logger
       @kubectl = kubectl_instance
@@ -201,16 +202,14 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisioners ||= TemplateDiscovery.templates(@template_paths).keys.map do |template_dir|
-        EjsonSecretProvisioner.new(
-          namespace: @namespace,
-          context: @context,
-          template_dir: template_dir,
-          logger: @logger,
-          statsd_tags: @namespace_tags,
-          selector: @selector,
-        )
-      end
+      @ejson_provisioners ||= EjsonSecretProvisioner.new(
+        namespace: @namespace,
+        context: @context,
+        templates: @templates,
+        logger: @logger,
+        statsd_tags: @namespace_tags,
+        selector: @selector,
+      )
     end
 
     def deploy_has_priority_resources?(resources)
@@ -265,13 +264,13 @@ module KubernetesDeploy
     measure_method(:check_initial_status, "initial_status.duration")
 
     def secrets_from_ejson
-      ejson_provisioners.flat_map(&:resources)
+      ejson_provisioners.resources
     end
 
     def discover_resources
       @logger.info("Discovering resources:")
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
-      resource_discoverer = LocalResourceDiscovery.new(template_paths: @template_paths, namespace: @namespace,
+      resource_discoverer = LocalResourceDiscovery.new(templates: @templates, namespace: @namespace,
         context: @context, current_sha: @current_sha, logger: @logger, bindings: @bindings,
         namespace_tags: @namespace_tags, crds: crds)
       resources = resource_discoverer.resources
@@ -538,7 +537,7 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      secret = ejson_provisioners.first.ejson_keys_secret
+      secret = ejson_provisioners.ejson_keys_secret
       return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \

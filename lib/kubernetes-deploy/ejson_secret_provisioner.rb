@@ -17,10 +17,12 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:, selector: nil)
+    def initialize(namespace:, context:, templates:, logger:, statsd_tags:, selector: nil)
       @namespace = namespace
       @context = context
-      @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
+      @ejson_files = templates.flat_map do |template_dir, filenames|
+        "#{template_dir}/#{EJSON_SECRETS_FILE}" if filenames.include?(EJSON_SECRETS_FILE)
+      end.reject(&:nil?)
       @logger = logger
       @statsd_tags = statsd_tags
       @selector = selector
@@ -51,25 +53,30 @@ module KubernetesDeploy
     private
 
     def build_secrets
-      return [] unless File.exist?(@ejson_file)
-      with_decrypted_ejson do |decrypted|
-        secrets = decrypted[EJSON_SECRET_KEY]
-        unless secrets.present?
-          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
-            "No secrets will be created.")
-          return []
-        end
-
-        secrets.map do |secret_name, secret_spec|
-          validate_secret_spec(secret_name, secret_spec)
-          resource = generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
-          resource.validate_definition(@kubectl)
-          if resource.validation_failed?
-            raise EjsonSecretError, "Resulting resource Secret/#{secret_name} failed validation"
+      secret_resources = []
+      @ejson_files.each do |ejson_file|
+        next unless File.exist?(ejson_file)
+        @ejson_file = ejson_file
+        with_decrypted_ejson do |decrypted|
+          secrets = decrypted[EJSON_SECRET_KEY]
+          unless secrets.present?
+            @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
+              "No secrets will be created.")
+            next
           end
-          resource
+
+          secrets.each do |secret_name, secret_spec|
+            validate_secret_spec(secret_name, secret_spec)
+            resource = generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
+            resource.validate_definition(@kubectl)
+            if resource.validation_failed?
+              raise EjsonSecretError, "Resulting resource Secret/#{secret_name} failed validation"
+            end
+            secret_resources << resource
+          end
         end
       end
+      secret_resources
     end
 
     def encrypted_ejson

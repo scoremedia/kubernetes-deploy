@@ -917,6 +917,23 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_only_explicitly_listed_ejson_secrets_deployed_when_specifying_filename_args
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+
+    web_file = File.join(fixture_path("ejson-cloud2"), "web.yml")
+    ejson_dir = fixture_path("ejson-cloud")
+    result = deploy_dirs(web_file, ejson_dir)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Secret/catphotoscom\s+Available},
+      %r{Secret/monitoring-token\s+Available},
+      %r{Secret/unused-secret\s+Available},
+    ])
+    refute_logs_match(%r{Secret/a-secret\s+Available})
+  end
+
   def test_deploy_aborts_immediately_if_metadata_name_missing
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       definition = fixtures["configmap-data.yml"]["ConfigMap"].first

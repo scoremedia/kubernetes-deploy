@@ -2,8 +2,8 @@
 
 module KubernetesDeploy
   class LocalResourceDiscovery
-    def initialize(template_paths:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
-      @template_paths = template_paths
+    def initialize(templates:, namespace:, context:, current_sha:, logger:, bindings:, namespace_tags:, crds: {})
+      @templates = templates
       @namespace = namespace
       @context = context
       @logger = logger
@@ -21,8 +21,8 @@ module KubernetesDeploy
 
     def resources
       resources = []
-      TemplateDiscovery.templates(@template_paths).each do |template_dir, filenames|
-        filenames.each do |filename|
+      @templates.each do |template_dir, filenames|
+        filenames.reject {|f| f == KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE}.each do |filename|
           split_templates(template_dir, filename) do |r_def|
             crd = @crds[r_def["kind"]]&.first
             r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
